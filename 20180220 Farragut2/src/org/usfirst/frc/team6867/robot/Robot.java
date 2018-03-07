@@ -32,6 +32,7 @@ public class Robot extends IterativeRobot {
 	private static final String kCustomAuto = "My Auto";
 	private String m_autoSelected;
 	private SendableChooser<String> m_chooser = new SendableChooser<>();
+	private int stationNumber;
 
 	// Declare the drive motors. They're all on Victor motor controllers
 	Victor frontleftdrive=new Victor (1);	
@@ -92,13 +93,27 @@ public class Robot extends IterativeRobot {
 		// defaultAuto);
 		System.out.println("Auto selected: " + m_autoSelected);
 	}
+	@Override
+	public void disabledPeriodic() {
+		if (controller.getRawButton(3)) { //LEFT
+			stationNumber = 1;
+		}
+		else if (controller.getRawButton(1)) {
+			stationNumber = 2;
+		}
+		
+		else if (controller.getRawButton(2)) {
+			stationNumber = 3;
+		}
+	}
+
 
 	/**
 	 * This function is called periodically during autonomous.
 	 */
 	@Override
 	public void autonomousPeriodic() {
-		int stationNumber = DriverStation.getInstance().getLocation();  //I actually don't know if the stations are 0/1/2 or 1/2/3 
+		//int stationNumber = DriverStation.getInstance().getLocation();  //I actually don't know if the stations are 0/1/2 or 1/2/3 
 		String gameData;
 		gameData = DriverStation.getInstance().getGameSpecificMessage();
 
@@ -177,7 +192,7 @@ public class Robot extends IterativeRobot {
 			        
 			        leftDrive(.7);//straight 2
 			        rightDrive(.7);
-			        wait1MSec(500);
+			        wait1MSec(650);
 			        leftDrive(-0.2);//counter brake
 			        rightDrive(-0.2);
 			        wait1MSec(100);
@@ -207,6 +222,8 @@ public class Robot extends IterativeRobot {
 		        leftDrive(0);//stop
 		        rightDrive(0);
 		        wait1MSec(1000);
+		        rightDrive(0.2);
+		        leftDrive(0.2);
 		        
 				_frontLeftMotor.set(0.7);
 			    _frontRightMotor.set(-0.7);
@@ -238,7 +255,7 @@ public class Robot extends IterativeRobot {
 	 */
 	@Override
 	public void teleopPeriodic() {
-		
+		// Ishmam's GTA-style code
 		if (controller.getRawButton(1)) 
 		{
 			speedMaster = 0.25;
@@ -260,22 +277,24 @@ public class Robot extends IterativeRobot {
 			frontrightdrive.set((controller.getRawAxis(2) - controller.getRawAxis(4)) * speedMaster);
 			rearrightdrive.set((controller.getRawAxis(2) - controller.getRawAxis(4)) * speedMaster);
 		} else {
-			frontleftdrive.set(controller.getRawAxis(4) * .7);
-			rearleftdrive.set(controller.getRawAxis(4) * .7);
-			frontrightdrive.set(controller.getRawAxis(4) * .7);
-			rearrightdrive.set(controller.getRawAxis(4) * .7);
+			// Turning code
+			frontleftdrive.set(controller.getRawAxis(4) * .5);
+			rearleftdrive.set(controller.getRawAxis(4) * .5);
+			frontrightdrive.set(controller.getRawAxis(4) * .5);
+			rearrightdrive.set(controller.getRawAxis(4) * .5);
 		}
 
 		if (controller.getRawButton(9)) {
-			_frontLeftMotor.set(-.7);
-			_frontRightMotor.set(.7);
-			_backLeftMotor.set(-.7);
-			_backRightMotor.set(.7);
+			// Ishmam's intake code
+			_frontLeftMotor.set(-.9);
+			_frontRightMotor.set(.9);
+			_backLeftMotor.set(-.9);
+			_backRightMotor.set(.9);
 		} else if (controller.getRawButton(10)) {
-			_frontLeftMotor.set(.7);
-			_frontRightMotor.set(-.7);
-			_backLeftMotor.set(.7);
-			_backRightMotor.set(-.7);
+			_frontLeftMotor.set(.9);
+			_frontRightMotor.set(-.9);
+			_backLeftMotor.set(.9);
+			_backRightMotor.set(-.9);
 		} else {
 			_frontLeftMotor.set(0);
 			_frontRightMotor.set(0);

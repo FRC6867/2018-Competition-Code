@@ -28,6 +28,7 @@ import edu.wpi.first.wpilibj.DriverStation;
  */
 public class Robot extends IterativeRobot {
 
+	
 	private static final String kDefaultAuto = "Default";
 	private static final String kCustomAuto = "My Auto";
 	private String m_autoSelected;
@@ -48,7 +49,8 @@ public class Robot extends IterativeRobot {
 	// Declare the controller. We're using the Logitech gamepad
 	Joystick gamepad=new Joystick (0);
 
-	boolean autoEnabled = true;
+	boolean autoEnabled = true; // This flag will let us prevent the periodic auto from looping
+	
 	
 	/**
 	 * This function is run when the robot is first started up and should be
@@ -62,6 +64,9 @@ public class Robot extends IterativeRobot {
 		CameraServer.getInstance().startAutomaticCapture();
 	}
 	
+	//In early builds of our code the rightDrive and leftDrive functions were actually backwards.
+	//This has been corrected in this build, and the auto has been updated to reflect that.
+	
 	public void rightDrive(double speed) {
 		frontRightDrive.set(-speed);
 		backRightDrive.set(-speed);
@@ -72,6 +77,8 @@ public class Robot extends IterativeRobot {
 		backLeftDrive.set(speed);
 	}
 	
+	// A handy function to stop drive functions. Includes a 50ms delay to help kill momentum before moving on.
+	
 	public void halt() {
 		frontLeftDrive.set(0);
 		backLeftDrive.set(0);
@@ -80,6 +87,10 @@ public class Robot extends IterativeRobot {
 		wait1MSec(50);
 	}
 
+	
+	// wait1MSec exists only to mimic a function that's familiar to anyone with Vex experience.
+	// This will pause execution of code for a set duration (in milliseconds), allowing for simple drive-for-time behaviours
+	
 	public void wait1MSec(long time){
 		long Time0 = System.currentTimeMillis();
 	    long Time1;

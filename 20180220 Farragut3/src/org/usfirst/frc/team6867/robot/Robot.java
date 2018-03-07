@@ -32,6 +32,7 @@ public class Robot extends IterativeRobot {
 	private static final String kCustomAuto = "My Auto";
 	private String m_autoSelected;
 	private SendableChooser<String> m_chooser = new SendableChooser<>();
+	private int stationNumber;
 
 	// Declare the drive motors. They're all on Victor motor controllers
 	Victor frontleftdrive=new Victor (1);	
@@ -46,7 +47,7 @@ public class Robot extends IterativeRobot {
 	WPI_TalonSRX _backLeftMotor = new WPI_TalonSRX(11);	
 	
 	// Declare the controller. We're using the Logitech gamepad
-	Joystick controller=new Joystick (0);
+	Joystick controller = new Joystick(0);
 
 	boolean autoEnabled = true;
 	
@@ -91,19 +92,33 @@ public class Robot extends IterativeRobot {
 		System.out.println("Auto selected: " + m_autoSelected);
 	}
 
+	@Override
+	public void disabledPeriodic() {
+		if (controller.getRawButton(3)) { //LEFT
+			stationNumber = 1;
+		}
+		else if (controller.getRawButton(1)) {
+			stationNumber = 2;
+		}
+		
+		else if (controller.getRawButton(2)) {
+			stationNumber = 3;
+		}
+	}
+
 	/**
 	 * This function is called periodically during autonomous.
 	 */
 	@Override
 	public void autonomousPeriodic() {
-		int stationNumber = DriverStation.getInstance().getLocation();  //I actually don't know if the stations are 0/1/2 or 1/2/3 
+		//stationNumber = DriverStation.getInstance().getLocation();  //I actually don't know if the stations are 0/1/2 or 1/2/3 
 		String gameData;
 		gameData = DriverStation.getInstance().getGameSpecificMessage();
 
 		
 		
 		if(gameData.length() > 0 && autoEnabled == true) { // Call red 0? Sake of argument?
-			if(stationNumber == 1) {
+			if(stationNumber == 1) { //LEFT AUTO
 				leftDrive(.75);//forward
 				rightDrive(.72);
 				wait1MSec(2000);
@@ -116,7 +131,7 @@ public class Robot extends IterativeRobot {
 		    
 			}
 			
-			else if(stationNumber == 2) {
+			else if(stationNumber == 2) { //CENTER AUTO
 		        leftDrive(.7);//straight 1
 		        rightDrive(.7);
 		        wait1MSec(400);
@@ -175,7 +190,7 @@ public class Robot extends IterativeRobot {
 			        
 			        leftDrive(.7);//straight 2
 			        rightDrive(.7);
-			        wait1MSec(500);
+			        wait1MSec(650);
 			        leftDrive(-0.2);//counter brake
 			        rightDrive(-0.2);
 			        wait1MSec(100);
@@ -205,6 +220,8 @@ public class Robot extends IterativeRobot {
 		        leftDrive(0);//stop
 		        rightDrive(0);
 		        wait1MSec(1000);
+		        rightDrive(0.2);
+		        leftDrive(0.2);
 		        
 				_frontLeftMotor.set(0.7);
 			    _frontRightMotor.set(-0.7);
@@ -217,7 +234,8 @@ public class Robot extends IterativeRobot {
 			    _backLeftMotor.set(0);
 			    autoEnabled = false;	
 			}
-			else if(stationNumber == 3) {
+			else if(stationNumber == 3) { //RIGHT AUTO
+				wait1MSec(5000);
 		        leftDrive(0.75);
 		        rightDrive(0.72);
 		        wait1MSec(2000);
@@ -236,6 +254,7 @@ public class Robot extends IterativeRobot {
 	 */
 	@Override
 	public void teleopPeriodic() {
+		// Clark's tank control
 		double speed = 0.7;
 		if (controller.getRawButton(5)) {
 			speed = 0.3;
@@ -272,15 +291,15 @@ public class Robot extends IterativeRobot {
 //		}
 		 
 		if (controller.getRawAxis(2) > 0.05) {
-			_frontLeftMotor.set(-.7);
-			_frontRightMotor.set(.7);
-			_backLeftMotor.set(-.7);
-			_backRightMotor.set(.7);
+			_frontLeftMotor.set(-.9);
+			_frontRightMotor.set(.9);
+			_backLeftMotor.set(-.9);
+			_backRightMotor.set(.9);
 		} else if (controller.getRawAxis(3) > 0.05) {
-			_frontLeftMotor.set(.7);
-			_frontRightMotor.set(-.7);
-			_backLeftMotor.set(.7);
-			_backRightMotor.set(-.7);
+			_frontLeftMotor.set(.9);
+			_frontRightMotor.set(-.9);
+			_backLeftMotor.set(.9);
+			_backRightMotor.set(-.9);
 		} else {
 			_frontLeftMotor.set(0);
 			_frontRightMotor.set(0);
