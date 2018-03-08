@@ -28,11 +28,11 @@ import edu.wpi.first.wpilibj.DriverStation;
  */
 public class Robot extends IterativeRobot {
 
-	
 	private static final String kDefaultAuto = "Default";
 	private static final String kCustomAuto = "My Auto";
 	private String m_autoSelected;
 	private SendableChooser<String> m_chooser = new SendableChooser<>();
+	private int stationNumber;
 
 	// Declare the drive motors. They're all on Victor motor controllers
 	Victor frontLeftDrive=new Victor (1);	
@@ -50,6 +50,10 @@ public class Robot extends IterativeRobot {
 	Joystick gamepad=new Joystick (0);
 
 	boolean autoEnabled = true; // This flag will let us prevent the periodic auto from looping
+	double autoDelay = 0; // This allows us to delay the start of our autonomous, in case our alliance needs us to wait.
+	boolean driverSelect = false; // We can use this to toggle between Ishmam and Clark's driver code
+	
+	double speedMaster = 0.7; // Used in Ishmam's GTA code
 	
 	
 	/**
@@ -88,7 +92,7 @@ public class Robot extends IterativeRobot {
 	}
 
 	
-	// wait1MSec exists only to mimic a function that's familiar to anyone with Vex experience.
+	// wait1MSec exists only to mimic a function that's familiar to anyone with Vex/RobotC experience.
 	// This will pause execution of code for a set duration (in milliseconds), allowing for simple drive-for-time behaviours
 	
 	public void wait1MSec(long time){
@@ -110,12 +114,45 @@ public class Robot extends IterativeRobot {
 		System.out.println("Auto selected: " + m_autoSelected);
 	}
 
+	@Override
+	public void disabledPeriodic() {
+		// Use gamepad to select which autonomous to run
+		if (gamepad.getRawButton(3)) { //LEFT
+			stationNumber = 1;
+			SmartDashboard.putString("DB/String 0", "Auto: Left");
+		}
+		else if (gamepad.getRawButton(1)) {
+			stationNumber = 2;
+			SmartDashboard.putString("DB/String 0", "Auto: Center");
+		}
+		
+		else if (gamepad.getRawButton(2)) {
+			stationNumber = 3;
+			SmartDashboard.putString("DB/String 0", "Auto: Right");
+		}
+		
+		// This will read a value off of the first slider, and use it to delay the start of autonomous up to 5s.
+		autoDelay = SmartDashboard.getNumber("DB/Slider 0", 0.0) * 1000; // It can read a value from 0 to 5, but we need a value in millisecs
+		SmartDashboard.putString("DB/String 1", "autoDelay: " + Double.toString(autoDelay)); //JT: Not sure if this is legal...
+		
+		// And this will use the top-most "button" to toggle driver mode. Defaults to Clark, toggle on for Ishmam
+		driverSelect = SmartDashboard.getBoolean("DB/Button 0", false);
+		if (driverSelect == false) {
+			SmartDashboard.putString("DB/String 2", "Driver: Clark (Tank)");
+		}
+		else {
+			SmartDashboard.putString("DB/String 2", "Driver: Ishmam (GTA)");
+		}
+		
+	}	
+	
+	
 	/**
 	 * This function is called periodically during autonomous.
 	 */
 	@Override
 	public void autonomousPeriodic() {
-		int stationNumber = DriverStation.getInstance().getLocation();  //I actually don't know if the stations are 0/1/2 or 1/2/3 
+		//int stationNumber = DriverStation.getInstance().getLocation();  //I actually don't know if the stations are 0/1/2 or 1/2/3 
 		String gameData;
 		gameData = DriverStation.getInstance().getGameSpecificMessage();
 
@@ -123,6 +160,7 @@ public class Robot extends IterativeRobot {
 		
 		if(gameData.length() > 0 && autoEnabled == true) { // Call red 0? Sake of argument?
 			if(stationNumber == 1) {
+				wait1MSec((long)autoDelay);
 				leftDrive(-.75);//forward
 				rightDrive(-.72);
 				wait1MSec(2000);
@@ -135,6 +173,7 @@ public class Robot extends IterativeRobot {
 			}
 			
 			else if(stationNumber == 2) {
+				wait1MSec((long)autoDelay);
 		        leftDrive(-.7);//straight 1
 		        rightDrive(-.7);
 		        wait1MSec(400);
@@ -183,7 +222,7 @@ public class Robot extends IterativeRobot {
 			        
 			        leftDrive(-.7);//straight 2
 			        rightDrive(-.7);
-			        wait1MSec(500);
+			        wait1MSec(650);
 			        leftDrive(0.2);//counter brake
 			        rightDrive(0.2);
 			        wait1MSec(100);
@@ -207,6 +246,9 @@ public class Robot extends IterativeRobot {
 		        rightDrive(0.2);
 		        wait1MSec(50);
 		        halt();
+		        rightDrive(-0.2); // We know that the robot is going to slam into the switch and bounce. This should keep it against the switch.
+		        leftDrive(-0.2);
+		        wait1MSec(500);
 		        
 				frontLeftIntake.set(0.7);
 			    frontRightIntake.set(-0.7);
@@ -220,6 +262,7 @@ public class Robot extends IterativeRobot {
 			    autoEnabled = false;	
 			}
 			else if(stationNumber == 3) {
+				wait1MSec((long)autoDelay);
 		        leftDrive(-0.75);
 		        rightDrive(-0.72);
 		        wait1MSec(2000);
@@ -237,9 +280,110 @@ public class Robot extends IterativeRobot {
 	 */
 	@Override
 	public void teleopPeriodic() {
-		frontLeftDrive.set(gamepad.getRawAxis(1));
-	}
+		// This exact code is also in disabledPeriodic, but I want to have control of it in teleop as well.
+		driverSelect = SmartDashboard.getBoolean("DB/Button 0", false);
+		if (driverSelect == false) {
+			SmartDashboard.putString("DB/String 2", "Driver: Clark (Tank)");
+		}
+		else {
+			SmartDashboard.putString("DB/String 2", "Driver: Ishmam (GTA)");
+		}
+		
+		
+		if (driverSelect == false) { // Clark's tank controls
+			// Clark's tank control
+			double speed = 0.7;
+			if (gamepad.getRawButton(5)) {
+				speed = 0.3;
+			}
+			
+			double leftSpeed = gamepad.getRawAxis(1);
+			double rightSpeed = gamepad.getRawAxis(5);
 
+			leftSpeed = leftSpeed*speed;
+			rightSpeed = rightSpeed*speed;
+
+			leftDrive(leftSpeed);
+			rightDrive(rightSpeed);
+			
+			// setMotors(leftSpeed, rightSpeed); //JT: I replaced this with the function from the auto, to make the code consistent.
+						 
+			if (gamepad.getRawAxis(2) > 0.05) {
+				frontLeftIntake.set(-.9);
+				frontRightIntake.set(.9);
+				backLeftIntake.set(-.9);
+				backRightIntake.set(.9);
+			} 
+			else if (gamepad.getRawAxis(3) > 0.05) {
+				frontLeftIntake.set(.9);
+				frontRightIntake.set(-.9);
+				backLeftIntake.set(.9);
+				backRightIntake.set(-.9);
+			} 
+			else {
+				frontLeftIntake.set(0);
+				frontRightIntake.set(0);
+				backLeftIntake.set(0);
+				backRightIntake.set(0);
+			}
+		}
+		
+		
+		else { // Ishmam's GTA controls
+			// Ishmam's master throttle
+			if (gamepad.getRawButton(1)) 
+			{
+				speedMaster = 0.25;
+			} 
+			else if (gamepad.getRawButton(2)) 
+			{
+				speedMaster = 0.7;
+			}
+			
+			// Ishmam's drive control. The triggers give forward/reverse, and the stick turns
+			if (gamepad.getRawAxis(3) >= 0.05) {
+				frontLeftDrive.set((gamepad.getRawAxis(3) + gamepad.getRawAxis(4)) * speedMaster);
+				backLeftDrive.set((gamepad.getRawAxis(3) + gamepad.getRawAxis(4)) * speedMaster);
+				frontRightDrive.set(-(gamepad.getRawAxis(3) - gamepad.getRawAxis(4)) * speedMaster);
+				backRightDrive.set(-(gamepad.getRawAxis(3) - gamepad.getRawAxis(4)) * speedMaster);
+			}
+			else if (gamepad.getRawAxis(2) >= 0.05)	{
+				frontLeftDrive.set(-(gamepad.getRawAxis(2) + gamepad.getRawAxis(4)) * speedMaster);
+				backLeftDrive.set(-(gamepad.getRawAxis(2) + gamepad.getRawAxis(4)) * speedMaster);
+				frontRightDrive.set((gamepad.getRawAxis(2) - gamepad.getRawAxis(4)) * speedMaster);
+				backRightDrive.set((gamepad.getRawAxis(2) - gamepad.getRawAxis(4)) * speedMaster);
+			} 
+			else {
+				// Turning code
+				frontLeftDrive.set(gamepad.getRawAxis(4) * .5);
+				backLeftDrive.set(gamepad.getRawAxis(4) * .5);
+				frontRightDrive.set(gamepad.getRawAxis(4) * .5);
+				backRightDrive.set(gamepad.getRawAxis(4) * .5);
+			}
+
+			// Ishmam's intake code
+			if (gamepad.getRawButton(9)) {
+				frontLeftIntake.set(-.9);
+				frontRightIntake.set(.9);
+				backLeftIntake.set(-.9);
+				backRightIntake.set(.9);
+			} 
+			else if (gamepad.getRawButton(10)) {
+				frontLeftIntake.set(.9);
+				frontRightIntake.set(-.9);
+				backLeftIntake.set(.9);
+				backRightIntake.set(-.9);
+			}
+			else {
+				frontLeftIntake.set(0);
+				frontRightIntake.set(0);
+				backLeftIntake.set(0);
+				backRightIntake.set(0);
+			}
+		}
+
+	}
+	
 	/**
 	 * This function is called periodically during test mode.
 	 */
