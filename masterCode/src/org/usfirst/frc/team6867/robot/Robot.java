@@ -53,7 +53,7 @@ public class Robot extends IterativeRobot {
 	double autoDelay = 0; // This allows us to delay the start of our autonomous, in case our alliance needs us to wait.
 	boolean driverSelect = false; // We can use this to toggle between Ishmam and Clark's driver code
 	
-	double speedMaster = 0.7; // Used in Ishmam's GTA code
+	double speedMaster = 0.7; // Used in driver code to cap the motor speeds
 	
 	
 	/**
@@ -79,6 +79,13 @@ public class Robot extends IterativeRobot {
 	public void leftDrive(double speed) {
 		frontLeftDrive.set(speed);
 		backLeftDrive.set(speed);
+	}
+	
+	public void intake(double speed) {
+		frontLeftIntake.set(-speed);
+		frontRightIntake.set(speed);
+		backLeftIntake.set(-speed);
+		backRightIntake.set(speed);
 	}
 	
 	// A handy function to stop drive functions. Includes a 50ms delay to help kill momentum before moving on.
@@ -133,7 +140,7 @@ public class Robot extends IterativeRobot {
 		
 		// This will read a value off of the first slider, and use it to delay the start of autonomous up to 5s.
 		autoDelay = SmartDashboard.getNumber("DB/Slider 0", 0.0) * 1000; // It can read a value from 0 to 5, but we need a value in millisecs
-		SmartDashboard.putString("DB/String 1", "autoDelay: " + Double.toString(autoDelay)); //JT: Not sure if this is legal...
+		SmartDashboard.putString("DB/String 1", "autoDelay: " + Double.toString(autoDelay)); //JT: Not sure if this works...
 		
 		// And this will use the top-most "button" to toggle driver mode. Defaults to Clark, toggle on for Ishmam
 		driverSelect = SmartDashboard.getBoolean("DB/Button 0", false);
@@ -292,16 +299,19 @@ public class Robot extends IterativeRobot {
 		
 		if (driverSelect == false) { // Clark's tank controls
 			// Clark's tank control
-			double speed = 0.7;
 			if (gamepad.getRawButton(5)) {
-				speed = 0.3;
+				speedMaster = 0.3;
 			}
+			else {
+				speedMaster = 0.7;
+			}
+				
 			
 			double leftSpeed = gamepad.getRawAxis(1);
 			double rightSpeed = gamepad.getRawAxis(5);
 
-			leftSpeed = leftSpeed*speed;
-			rightSpeed = rightSpeed*speed;
+			leftSpeed = leftSpeed*speedMaster;
+			rightSpeed = rightSpeed*speedMaster;
 
 			leftDrive(leftSpeed);
 			rightDrive(rightSpeed);
@@ -309,22 +319,13 @@ public class Robot extends IterativeRobot {
 			// setMotors(leftSpeed, rightSpeed); //JT: I replaced this with the function from the auto, to make the code consistent.
 						 
 			if (gamepad.getRawAxis(2) > 0.05) {
-				frontLeftIntake.set(-.9);
-				frontRightIntake.set(.9);
-				backLeftIntake.set(-.9);
-				backRightIntake.set(.9);
+				intake(-.9);
 			} 
 			else if (gamepad.getRawAxis(3) > 0.05) {
-				frontLeftIntake.set(.9);
-				frontRightIntake.set(-.9);
-				backLeftIntake.set(.9);
-				backRightIntake.set(-.9);
+				intake(.9);
 			} 
 			else {
-				frontLeftIntake.set(0);
-				frontRightIntake.set(0);
-				backLeftIntake.set(0);
-				backRightIntake.set(0);
+				intake(0);
 			}
 		}
 		
@@ -363,22 +364,13 @@ public class Robot extends IterativeRobot {
 
 			// Ishmam's intake code
 			if (gamepad.getRawButton(9)) {
-				frontLeftIntake.set(-.9);
-				frontRightIntake.set(.9);
-				backLeftIntake.set(-.9);
-				backRightIntake.set(.9);
+				intake(-.9);
 			} 
 			else if (gamepad.getRawButton(10)) {
-				frontLeftIntake.set(.9);
-				frontRightIntake.set(-.9);
-				backLeftIntake.set(.9);
-				backRightIntake.set(-.9);
+				intake(.9);
 			}
 			else {
-				frontLeftIntake.set(0);
-				frontRightIntake.set(0);
-				backLeftIntake.set(0);
-				backRightIntake.set(0);
+				intake(0);
 			}
 		}
 
