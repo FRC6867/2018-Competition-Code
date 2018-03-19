@@ -39,6 +39,7 @@ public class Robot extends IterativeRobot {
 	Victor backLeftDrive=new Victor (0);
 	Victor frontRightDrive=new Victor (3);
 	Victor backRightDrive=new Victor (2);
+	Victor lights=new Victor (4); // blinkin LED strip controller
 
 	// Delcare the intake motors. They're on the TalonSRX controllers
 	WPI_TalonSRX frontLeftIntake = new WPI_TalonSRX(10);
@@ -66,6 +67,28 @@ public class Robot extends IterativeRobot {
 		m_chooser.addObject("My Auto", kCustomAuto);
 		SmartDashboard.putData("Auto choices", m_chooser);
 		CameraServer.getInstance().startAutomaticCapture();
+		lightingcontrol(); //enables the lights
+	}
+	
+	public void lightingcontrol() { //lighting control for the strips
+		DriverStation.Alliance color;
+		color = DriverStation.getInstance().getAlliance();
+		if(color == DriverStation.Alliance.Blue && isDisabled()){ //blue disabled
+			lights.set(0.09);//breath slow
+		}
+		else if(color == DriverStation.Alliance.Blue && isEnabled()){ //blue enabled
+			lights.set(0.01);//light chase
+		}
+		else if(color == DriverStation.Alliance.Red && isDisabled()){ //red disabled
+			lights.set(0.29); //breath slow
+		}
+		else if(color == DriverStation.Alliance.Red && isEnabled()){ //red enabled
+			lights.set(0.21);//light chase
+		
+		}
+		else {
+			lights.set(-0.23);//heartbeat blue
+		}
 	}
 	
 	//In early builds of our code the rightDrive and leftDrive functions were actually backwards.
