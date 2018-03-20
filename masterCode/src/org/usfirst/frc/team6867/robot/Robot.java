@@ -18,6 +18,8 @@ import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Victor;
 import edu.wpi.first.wpilibj.command.Subsystem;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Encoder;
+
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -49,6 +51,14 @@ public class Robot extends IterativeRobot {
 	
 	// Declare the controller. We're using the Logitech gamepad
 	Joystick gamepad=new Joystick (0);
+	
+	// JT: Declare the encoders. This is untested. I'm guessing the ports, which side is which, and what's reversed.
+	// JT: DO NOT EVEN THINK OF USING THE ENCODERS IN COMPETITION WITHOUT VERIFYING
+	Encoder leftEncoder;
+	Encoder rightEncoder;
+
+	
+	
 
 	boolean autoEnabled = true; // This flag will let us prevent the periodic auto from looping
 	double autoDelay = 0; // This allows us to delay the start of our autonomous, in case our alliance needs us to wait.
@@ -67,6 +77,11 @@ public class Robot extends IterativeRobot {
 		m_chooser.addObject("My Auto", kCustomAuto);
 		SmartDashboard.putData("Auto choices", m_chooser);
 		CameraServer.getInstance().startAutomaticCapture();
+		// JT: Again, this is setting up the encoders.
+		// JT: Declare the encoders. This is untested. I'm guessing the ports, which side is which, and what's reversed.
+		// JT: DO NOT EVEN THINK OF USING THE ENCODERS IN COMPETITION WITHOUT VERIFYING THIS FIRST
+		leftEncoder = new Encoder(0,1,false,Encoder.EncodingType.k4X);  // JT: The 0,1 and 2,3 correspond to digital I/O pins, but I don't know what's what
+		rightEncoder = new Encoder(2,3,false,Encoder.EncodingType.k4X); // JT: Logically, one of those should be reversed (it's the false flag)
 		lightingcontrol(); //enables the lights
 	}
 	
@@ -122,6 +137,34 @@ public class Robot extends IterativeRobot {
 	}
 
 	
+	// JT: This is an experimental feature. In theory it'll cause the robot to drive forward (straight) a desired distance at a desired speed
+	// JT: It's just bang-bang control. Ideally this would use proportional control and also have smooth accelerations, but this is more of a model for the programming team to figure out later.
+	// JT: This is also only going to work when going forward.
+	
+	public void driveForDistance(double ticks, double speed) {
+		halt(); // JT: Just a little safety thing. It's easier to do this from a stopped position.
+		leftEncoder.reset();
+		rightEncoder.reset(); // JT: Need to reset encoders to know where we're starting from
+		while(leftEncoder.getRaw() < ticks) // JT: It's also possible to use have the encoder library calculate a distance for us. Or we can do the math. For now the tick argument is going to seem like a crazy number.
+		{
+			if(leftEncoder.getRaw() > rightEncoder.getRaw()) {
+				leftDrive(speed * 0.7);
+				rightDrive(speed);
+			}
+			else if(rightEncoder.getRaw() > leftEncoder.getRaw()) {
+				leftDrive(speed);
+				rightDrive(speed * 0.7);
+			}
+			else {
+				leftDrive(speed);
+				rightDrive(speed);
+			}
+			System.out.println("leftEncoder: " + Double.toString(leftEncoder.getRaw())); // JT: These lines can be commented out later. They're here for now to at least debug this.
+			System.out.println("rightEncoder: " + Double.toString(rightEncoder.getRaw()));			
+		}
+		halt(); // JT: This is going to skid. Again, ideally this would have smooth accelerations, but it's a start.
+	}
+	
 	// wait1MSec exists only to mimic a function that's familiar to anyone with Vex/RobotC experience.
 	// This will pause execution of code for a set duration (in milliseconds), allowing for simple drive-for-time behaviours
 	
@@ -163,7 +206,7 @@ public class Robot extends IterativeRobot {
 		
 		// This will read a value off of the first slider, and use it to delay the start of autonomous up to 5s.
 		autoDelay = SmartDashboard.getNumber("DB/Slider 0", 0.0) * 1000; // It can read a value from 0 to 5, but we need a value in millisecs
-		SmartDashboard.putString("DB/String 1", "autoDelay: " + Double.toString(autoDelay)); //JT: Not sure if this works...
+		SmartDashboard.putString("DB/String 1", "autoDelay: " + Double.toString(autoDelay) + "s"); //JT: Not sure if this works...
 		
 		// And this will use the top-most "button" to toggle driver mode. Defaults to Clark, toggle on for Ishmam
 		driverSelect = SmartDashboard.getBoolean("DB/Button 0", false);
