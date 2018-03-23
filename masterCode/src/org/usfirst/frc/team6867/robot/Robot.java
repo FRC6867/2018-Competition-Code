@@ -61,7 +61,9 @@ public class Robot extends IterativeRobot {
 	
 
 	boolean autoEnabled = true; // This flag will let us prevent the periodic auto from looping
-	double autoDelay = 0; // This allows us to delay the start of our autonomous, in case our alliance needs us to wait.
+	boolean lightSwitch = true; // JT: We want to activate the lights once per cycle, at the start of the cycle. So every time we start a new mode this should run once.
+	boolean isDisabled = false; //JT: This is a flag to help with communicating when the robot is disabled.
+	long autoDelay = 0; // This allows us to delay the start of our autonomous, in case our alliance needs us to wait.
 	boolean driverSelect = false; // We can use this to toggle between Ishmam and Clark's driver code
 	
 	double speedMaster = 0.7; // Used in driver code to cap the motor speeds
@@ -80,15 +82,17 @@ public class Robot extends IterativeRobot {
 		// JT: Again, this is setting up the encoders.
 		// JT: Declare the encoders. This is untested. I'm guessing the ports, which side is which, and what's reversed.
 		// JT: DO NOT EVEN THINK OF USING THE ENCODERS IN COMPETITION WITHOUT VERIFYING THIS FIRST
-		leftEncoder = new Encoder(0,1,false,Encoder.EncodingType.k4X);  // JT: The 0,1 and 2,3 correspond to digital I/O pins, but I don't know what's what
-		rightEncoder = new Encoder(2,3,false,Encoder.EncodingType.k4X); // JT: Logically, one of those should be reversed (it's the false flag)
-		lightingcontrol(); //enables the lights
+		leftEncoder = new Encoder(0,1,false,Encoder.EncodingType.k4X);  // Both sides are seem to be counting correctly right now, but I may have left and right backwards (which would mean the encoders should be reversed)
+		rightEncoder = new Encoder(2,3,true,Encoder.EncodingType.k4X); 
+		lightingControl(); //enables the lights
 	}
 	
-	public void lightingcontrol() { //lighting control for the strips
+	public void lightingControl() { //lighting control for the strips
 		DriverStation.Alliance color;
 		color = DriverStation.getInstance().getAlliance();
-		if(color == DriverStation.Alliance.Blue && isDisabled()){ //blue disabled
+		/*
+		  if(color == DriverStation.Alliance.Blue && isDisabled()){ //blue disabled
+		 
 			lights.set(0.09);//breath slow
 		}
 		else if(color == DriverStation.Alliance.Blue && isEnabled()){ //blue enabled
@@ -103,7 +107,8 @@ public class Robot extends IterativeRobot {
 		}
 		else {
 			lights.set(-0.23);//heartbeat blue
-		}
+		}*/
+		lights.set(-0.15);
 	}
 	
 	//In early builds of our code the rightDrive and leftDrive functions were actually backwards.
@@ -120,15 +125,14 @@ public class Robot extends IterativeRobot {
 	}
 	
 	public void intake(double speed) {
-		frontLeftIntake.set(-speed);
-		frontRightIntake.set(speed);
-		backLeftIntake.set(-speed);
-		backRightIntake.set(speed);
+		frontLeftIntake.set(speed);
+		frontRightIntake.set(-speed);
+		backLeftIntake.set(speed);
+		backRightIntake.set(-speed);
 	}
 	
-	// A handy function to stop drive functions. Includes a 50ms delay to help kill momentum before moving on.
-	
 	public void halt() {
+		// A handy function to stop drive functions. Includes a 50ms delay to help kill momentum before moving on.
 		frontLeftDrive.set(0);
 		backLeftDrive.set(0);
 		frontRightDrive.set(0);
@@ -136,12 +140,10 @@ public class Robot extends IterativeRobot {
 		wait1MSec(50);
 	}
 
-	
-	// JT: This is an experimental feature. In theory it'll cause the robot to drive forward (straight) a desired distance at a desired speed
-	// JT: It's just bang-bang control. Ideally this would use proportional control and also have smooth accelerations, but this is more of a model for the programming team to figure out later.
-	// JT: This is also only going to work when going forward.
-	
 	public void driveForDistance(double ticks, double speed) {
+		// JT: This is an experimental feature. In theory it'll cause the robot to drive forward (straight) a desired distance at a desired speed
+		// JT: It's just bang-bang control. Ideally this would use proportional control and also have smooth accelerations, but this is more of a model for the programming team to figure out later.
+		// JT: This is also only going to work when going forward.
 		halt(); // JT: Just a little safety thing. It's easier to do this from a stopped position.
 		leftEncoder.reset();
 		rightEncoder.reset(); // JT: Need to reset encoders to know where we're starting from
@@ -165,10 +167,9 @@ public class Robot extends IterativeRobot {
 		halt(); // JT: This is going to skid. Again, ideally this would have smooth accelerations, but it's a start.
 	}
 	
-	// wait1MSec exists only to mimic a function that's familiar to anyone with Vex/RobotC experience.
-	// This will pause execution of code for a set duration (in milliseconds), allowing for simple drive-for-time behaviours
-	
 	public void wait1MSec(long time){
+		// wait1MSec exists only to mimic a function that's familiar to anyone with Vex/RobotC experience.
+		// This will pause execution of code for a set duration (in milliseconds), allowing for simple drive-for-time behaviours
 		long Time0 = System.currentTimeMillis();
 	    long Time1;
 	    long runTime = 0;
@@ -178,7 +179,6 @@ public class Robot extends IterativeRobot {
 	    }
 	}
 	
-
 	@Override
 	public void autonomousInit() {
 		m_autoSelected = m_chooser.getSelected();
@@ -189,6 +189,18 @@ public class Robot extends IterativeRobot {
 
 	@Override
 	public void disabledPeriodic() {
+		lights.set(-0.15);
+		//lightingControl();
+		//if (lightSwitch == true && isDisabled == false) { 
+		//	//isDisabled defaults to false, and is set to false at the beginning of each op mode. It isn't set to true until *after* this if-statement, so this should only run once
+		//	lightingControl(); // JT: Activate lights during autonomous
+		//	lightSwitch = true; //JT: This is also different from the ones in TeleOp and Auto Periodic. I need to leave this "on" so that those lights will activate, but I prevent it from re-activating here by using the isDisabled flag
+		//}
+		
+		autoEnabled = true; //JT: Reset the enabled flag so that we can run auto by disabling/re-enabling auto.
+		
+
+
 		// Use gamepad to select which autonomous to run
 		if (gamepad.getRawButton(3)) { //LEFT
 			stationNumber = 1;
@@ -204,9 +216,19 @@ public class Robot extends IterativeRobot {
 			SmartDashboard.putString("DB/String 0", "Auto: Right");
 		}
 		
+		/*
+		 * else if (gamepad.getRawButton(4)) {
+		 
+			stationNumber = 4;
+			SmartDashboard.putString("DB/String 0", "Auto: !!!TEST!!!");
+		}
+		*/
+		
 		// This will read a value off of the first slider, and use it to delay the start of autonomous up to 5s.
-		autoDelay = SmartDashboard.getNumber("DB/Slider 0", 0.0) * 1000; // It can read a value from 0 to 5, but we need a value in millisecs
-		SmartDashboard.putString("DB/String 1", "autoDelay: " + Double.toString(autoDelay) + "s"); //JT: Not sure if this works...
+		// The dashboard returns a double, but we want a long
+		double d = SmartDashboard.getNumber("DB/Slider 0", 0.0) * 1000; // It can read a value from 0 to 5, but we need a value in millisecs
+		autoDelay = new Double(d).longValue(); 
+		SmartDashboard.putString("DB/String 1", "autoDelay: " + Long.toString(autoDelay) + "ms"); //JT: This is outputting a whole number, it works...
 		
 		// And this will use the top-most "button" to toggle driver mode. Defaults to Clark, toggle on for Ishmam
 		driverSelect = SmartDashboard.getBoolean("DB/Button 0", false);
@@ -225,15 +247,22 @@ public class Robot extends IterativeRobot {
 	 */
 	@Override
 	public void autonomousPeriodic() {
+		lights.set(-0.15);
+		//lightingControl();
+		//if (lightSwitch = true) {
+		//	lightingControl(); // JT: Activate lights during autonomous
+		//	lightSwitch = false; //JT: Prevents the lights from being reset repeatedly
+		//}
+
 		//int stationNumber = DriverStation.getInstance().getLocation();  //I actually don't know if the stations are 0/1/2 or 1/2/3 
 		String gameData;
 		gameData = DriverStation.getInstance().getGameSpecificMessage();
 
-		
+		System.out.println(Long.toString(autoDelay));
+		wait1MSec(autoDelay); // JT: This defaults to zero, but can be used to delay our autonomous
 		
 		if(gameData.length() > 0 && autoEnabled == true) { // Call red 0? Sake of argument?
 			if(stationNumber == 1) {
-				wait1MSec((long)autoDelay);
 				leftDrive(-.75);//forward
 				rightDrive(-.72);
 				wait1MSec(2000);
@@ -246,7 +275,6 @@ public class Robot extends IterativeRobot {
 			}
 			
 			else if(stationNumber == 2) {
-				wait1MSec((long)autoDelay);
 		        leftDrive(-.7);//straight 1
 		        rightDrive(-.7);
 		        wait1MSec(400);
@@ -335,7 +363,6 @@ public class Robot extends IterativeRobot {
 			    autoEnabled = false;	
 			}
 			else if(stationNumber == 3) {
-				wait1MSec((long)autoDelay);
 		        leftDrive(-0.75);
 		        rightDrive(-0.72);
 		        wait1MSec(2000);
@@ -345,14 +372,31 @@ public class Robot extends IterativeRobot {
 		        halt();
 		        autoEnabled = false;
 			}
+			else if(stationNumber == 4) { //JT: Drive for 1000 ticks, whatever that is, at half speed. Then go into a debugging loop so that we can see what the encoders are doing.
+				driveForDistance(1000,0.5); 
+				while(1>0) {
+					System.out.println("leftEncoder: " + Double.toString(leftEncoder.getRaw())); // JT: These lines can be commented out later. They're here for now to at least debug this.
+					System.out.println("rightEncoder: " + Double.toString(rightEncoder.getRaw()));		
+					wait1MSec(1000);
+				}
+			}
 		}
 	}
 
+	
 	/**
 	 * This function is called periodically during operator control.
 	 */
 	@Override
 	public void teleopPeriodic() {
+		lights.set(-0.15);
+		//lightingControl();
+		//if (lightSwitch == true) {
+		//	lightingControl(); //JT: Activate lights for TeleOp
+		//	lightSwitch = false; // JT: If we don't do this we'll keep resetting the light mode over and over
+		//}
+
+		
 		// This exact code is also in disabledPeriodic, but I want to have control of it in teleop as well.
 		driverSelect = SmartDashboard.getBoolean("DB/Button 0", false);
 		if (driverSelect == false) {
@@ -372,17 +416,15 @@ public class Robot extends IterativeRobot {
 				speedMaster = 0.7;
 			}
 				
-			
-			double leftSpeed = gamepad.getRawAxis(1);
-			double rightSpeed = gamepad.getRawAxis(5);
+			// JT: Clark's controls treat the back of the robot as the front, and the front as the back.
+			double leftSpeed = - gamepad.getRawAxis(1);
+			double rightSpeed = - gamepad.getRawAxis(5);
 
 			leftSpeed = leftSpeed*speedMaster;
 			rightSpeed = rightSpeed*speedMaster;
 
 			leftDrive(leftSpeed);
 			rightDrive(rightSpeed);
-			
-			// setMotors(leftSpeed, rightSpeed); //JT: I replaced this with the function from the auto, to make the code consistent.
 						 
 			if (gamepad.getRawAxis(2) > 0.05) {
 				intake(-.9);
@@ -394,7 +436,6 @@ public class Robot extends IterativeRobot {
 				intake(0);
 			}
 		}
-		
 		
 		else { // Ishmam's GTA controls
 			// Ishmam's master throttle
@@ -447,5 +488,6 @@ public class Robot extends IterativeRobot {
 	 */
 	@Override
 	public void testPeriodic() {
+		//isDisabled = false;
 	}
 }
