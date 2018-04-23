@@ -19,6 +19,8 @@ import edu.wpi.first.wpilibj.Victor;
 import edu.wpi.first.wpilibj.command.Subsystem;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.Compressor; //JT: This is only needed if running an onboard compressor
+import edu.wpi.first.wpilibj.DoubleSolenoid; //JT: And this allows control for the solenoids that are running the actuators
 
 
 /**
@@ -36,27 +38,50 @@ public class Robot extends IterativeRobot {
 	private SendableChooser<String> m_chooser = new SendableChooser<>();
 	private int stationNumber;
 
+
+	// Declare the drive motors. These are all now on the Talons. They were on the Victors in old builds
+	WPI_TalonSRX frontLeftDrive = new WPI_TalonSRX(11);
+	WPI_TalonSRX backLeftDrive = new WPI_TalonSRX(10);
+	WPI_TalonSRX frontRightDrive = new WPI_TalonSRX(21);
+	WPI_TalonSRX backRightDrive = new WPI_TalonSRX(20);
+	
+	/*Old config
 	// Declare the drive motors. They're all on Victor motor controllers
 	Victor frontLeftDrive=new Victor (1);	
 	Victor backLeftDrive=new Victor (0);
 	Victor frontRightDrive=new Victor (3);
 	Victor backRightDrive=new Victor (2);
 	Victor lights=new Victor (4); // blinkin LED strip controller
+	*/
 
+
+	/*Old config
 	// Delcare the intake motors. They're on the TalonSRX controllers
 	WPI_TalonSRX frontLeftIntake = new WPI_TalonSRX(10);
 	WPI_TalonSRX frontRightIntake = new WPI_TalonSRX(20);
 	WPI_TalonSRX backRightIntake = new WPI_TalonSRX(21);
 	WPI_TalonSRX backLeftIntake = new WPI_TalonSRX(11);	
+	*/
+	
+	// Delcare the intake motors. These are now on the Victors. They used to be Talons.
+	Victor frontLeftIntake =new Victor (1);	
+	Victor backLeftIntake =new Victor (0);
+	Victor frontRightIntake=new Victor (3);
+	Victor backRightIntake = new Victor (2);
+	Victor lights=new Victor (4);
 	
 	// Declare the controller. We're using the Logitech gamepad
 	Joystick gamepad=new Joystick (0);
 	
-	// JT: Declare the encoders. This is untested. I'm guessing the ports, which side is which, and what's reversed.
-	// JT: DO NOT EVEN THINK OF USING THE ENCODERS IN COMPETITION WITHOUT VERIFYING
+	// Declare the encoders. It's about 46 encoder ticks per inch.
 	Encoder leftEncoder;
 	Encoder rightEncoder;
 
+	// JT: None of this code can be tested until we get our hands on a Rio and wire up the systems.
+	// JT: The compressor is probably best running off a closed-loop feedback system from the PCM, but we'll need to calibrate it
+	//Compressor c = new Compressor(0);
+	//DoubleSolenoid leftSolenoid = new DoubleSolenoid(1,2); // JT: The double solenoids have a forward and a reverse channel, so they're each going to take up two pairs of ports on the PCM
+	//DoubleSolenoid rightSolenoid = new DoubleSolenoid(3,4); // JT: This isn't actually wired yet, so these channels will need to be checked
 	
 	
 
@@ -130,7 +155,18 @@ public class Robot extends IterativeRobot {
 		backLeftIntake.set(speed);
 		backRightIntake.set(-speed);
 	}
-	
+	/*
+	public void externalIntake() {
+		// JT: Tentatively, the idea would be to spin up the external intake's wheels and then clamp the claw
+		// What motor controllers are we using? The sparks?
+		// Until we know what motor controllers we're on we can't really declare the motors.
+		// leftExternalIntake.set(.9);
+		// rightExternalIntake.set(-.9);
+		wait1MSec(500);
+		leftSolenoid.set(DoubleSolenoid.Value.kForward);
+		rightSolenoid.set(DoubleSolenoid.Value.kForward);
+	}
+	*/
 	public void halt() {
 		// A handy function to stop drive functions. Includes a 50ms delay to help kill momentum before moving on.
 		frontLeftDrive.set(0);
@@ -144,22 +180,35 @@ public class Robot extends IterativeRobot {
 		// JT: This is an experimental feature. In theory it'll cause the robot to drive forward (straight) a desired distance at a desired speed
 		// JT: It's just bang-bang control. Ideally this would use proportional control and also have smooth accelerations, but this is more of a model for the programming team to figure out later.
 		// JT: This is also only going to work when going forward.
+		double slowApproach = 1;
 		halt(); // JT: Just a little safety thing. It's easier to do this from a stopped position.
 		leftEncoder.reset();
 		rightEncoder.reset(); // JT: Need to reset encoders to know where we're starting from
 		while(leftEncoder.getRaw() < ticks) // JT: It's also possible to use have the encoder library calculate a distance for us. Or we can do the math. For now the tick argument is going to seem like a crazy number.
 		{
+			if(leftEncoder.getRaw() > (0.7 * ticks))
+			{
+				slowApproach = 0.6;
+			}
+			else if(leftEncoder.getRaw() > (0.8 * ticks))
+			{
+				slowApproach = 0.5;
+			}
+			else if(leftEncoder.getRaw() > (0.9 * ticks))
+			{
+				slowApproach = 0.4;
+			}
 			if(leftEncoder.getRaw() > rightEncoder.getRaw()) {
-				leftDrive(speed * 0.7);
-				rightDrive(speed);
+				leftDrive(speed * slowApproach * 0.6);
+				rightDrive(speed * slowApproach);
 			}
 			else if(rightEncoder.getRaw() > leftEncoder.getRaw()) {
-				leftDrive(speed);
-				rightDrive(speed * 0.7);
+				leftDrive(speed * slowApproach);
+				rightDrive(speed* slowApproach * 0.6);
 			}
 			else {
-				leftDrive(speed);
-				rightDrive(speed);
+				leftDrive(speed * slowApproach);
+				rightDrive(speed * slowApproach);
 			}
 			System.out.println("leftEncoder: " + Double.toString(leftEncoder.getRaw())); // JT: These lines can be commented out later. They're here for now to at least debug this.
 			System.out.println("rightEncoder: " + Double.toString(rightEncoder.getRaw()));			
@@ -176,6 +225,7 @@ public class Robot extends IterativeRobot {
 	    while(runTime<time){
 	        Time1 = System.currentTimeMillis();
 	        runTime = Time1 - Time0;
+	        //System.out.println("Our runtime: " + Long.toString(runTime)); // TODO: remove me please
 	    }
 	}
 	
@@ -189,7 +239,7 @@ public class Robot extends IterativeRobot {
 
 	@Override
 	public void disabledPeriodic() {
-		lights.set(-0.15);
+		//lights.set(-0.15);
 		//lightingControl();
 		//if (lightSwitch == true && isDisabled == false) { 
 		//	//isDisabled defaults to false, and is set to false at the beginning of each op mode. It isn't set to true until *after* this if-statement, so this should only run once
@@ -210,23 +260,19 @@ public class Robot extends IterativeRobot {
 			stationNumber = 2;
 			SmartDashboard.putString("DB/String 0", "Auto: Center");
 		}
-		
 		else if (gamepad.getRawButton(2)) {
 			stationNumber = 3;
 			SmartDashboard.putString("DB/String 0", "Auto: Right");
-		}
-		
-		/*
-		 * else if (gamepad.getRawButton(4)) {
-		 
+		}	
+		else if (gamepad.getRawButton(4)) {
 			stationNumber = 4;
 			SmartDashboard.putString("DB/String 0", "Auto: !!!TEST!!!");
 		}
-		*/
+
 		
 		// This will read a value off of the first slider, and use it to delay the start of autonomous up to 5s.
 		// The dashboard returns a double, but we want a long
-		double d = SmartDashboard.getNumber("DB/Slider 0", 0.0) * 1000; // It can read a value from 0 to 5, but we need a value in millisecs
+		double d = SmartDashboard.getNumber("DB/Slider 0", 0.0) * 3000; // It can read a value from 0 to 5, but we need a value in millisecs
 		autoDelay = new Double(d).longValue(); 
 		SmartDashboard.putString("DB/String 1", "autoDelay: " + Long.toString(autoDelay) + "ms"); //JT: This is outputting a whole number, it works...
 		
@@ -247,7 +293,7 @@ public class Robot extends IterativeRobot {
 	 */
 	@Override
 	public void autonomousPeriodic() {
-		lights.set(-0.15);
+		//lights.set(-0.15);
 		//lightingControl();
 		//if (lightSwitch = true) {
 		//	lightingControl(); // JT: Activate lights during autonomous
@@ -258,7 +304,8 @@ public class Robot extends IterativeRobot {
 		String gameData;
 		gameData = DriverStation.getInstance().getGameSpecificMessage();
 
-		System.out.println(Long.toString(autoDelay));
+		System.out.println("Our autoDelay for this run: " + Long.toString(autoDelay));
+		//autoDelay=autoDelay*1; //dummy line to see how autoDelay is working. 
 		wait1MSec(autoDelay); // JT: This defaults to zero, but can be used to delay our autonomous
 		
 		if(gameData.length() > 0 && autoEnabled == true) { // Call red 0? Sake of argument?
@@ -373,12 +420,8 @@ public class Robot extends IterativeRobot {
 		        autoEnabled = false;
 			}
 			else if(stationNumber == 4) { //JT: Drive for 1000 ticks, whatever that is, at half speed. Then go into a debugging loop so that we can see what the encoders are doing.
-				driveForDistance(1000,0.5); 
-				while(1>0) {
-					System.out.println("leftEncoder: " + Double.toString(leftEncoder.getRaw())); // JT: These lines can be commented out later. They're here for now to at least debug this.
-					System.out.println("rightEncoder: " + Double.toString(rightEncoder.getRaw()));		
-					wait1MSec(1000);
-				}
+				driveForDistance(5888,0.3); 
+				autoEnabled = false;
 			}
 		}
 	}
@@ -389,14 +432,14 @@ public class Robot extends IterativeRobot {
 	 */
 	@Override
 	public void teleopPeriodic() {
-		lights.set(-0.15);
+		//lights.set(-0.15);
 		//lightingControl();
 		//if (lightSwitch == true) {
 		//	lightingControl(); //JT: Activate lights for TeleOp
 		//	lightSwitch = false; // JT: If we don't do this we'll keep resetting the light mode over and over
 		//}
 
-		
+
 		// This exact code is also in disabledPeriodic, but I want to have control of it in teleop as well.
 		driverSelect = SmartDashboard.getBoolean("DB/Button 0", false);
 		if (driverSelect == false) {
@@ -413,7 +456,7 @@ public class Robot extends IterativeRobot {
 				speedMaster = 0.3;
 			}
 			else {
-				speedMaster = 0.7;
+				speedMaster = 0.8;
 			}
 				
 			// JT: Clark's controls treat the back of the robot as the front, and the front as the back.
@@ -434,6 +477,14 @@ public class Robot extends IterativeRobot {
 			} 
 			else {
 				intake(0);
+			}
+			if (gamepad.getRawButton(1)) { //Just some debugging code so that I can get the encoder values from console
+				System.out.println("leftEncoder: " + Double.toString(leftEncoder.getRaw())); 
+				System.out.println("rightEncoder: " + Double.toString(rightEncoder.getRaw()));
+			}
+			else if (gamepad.getRawButton(2)) {
+				leftEncoder.reset();
+				rightEncoder.reset();
 			}
 		}
 		
