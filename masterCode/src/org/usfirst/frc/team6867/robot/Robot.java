@@ -65,8 +65,8 @@ public class Robot extends IterativeRobot {
 	
 	// Delcare the intake motors. These are now on the Victors. They used to be Talons.
 	Victor frontLeftIntake =new Victor (1);	
-	Victor backLeftIntake =new Victor (0);
-	Victor frontRightIntake=new Victor (3);
+	Victor backLeftIntake = new Victor (0);
+	Victor frontRightIntake = new Victor (3);
 	Victor backRightIntake = new Victor (2);
 	Victor lights=new Victor (4);
 	
