@@ -176,7 +176,7 @@ public class Robot extends IterativeRobot {
 		rightEncoder.reset(); // JT: Need to reset encoders to know where we're starting from
 		while(leftEncoder.getRaw() < ticks) // JT: It's also possible to use have the encoder library calculate a distance for us. Or we can do the math. For now the tick argument is going to seem like a crazy number.
 		{
-			if(leftEncoder.getRaw() > (0.7 * ticks))
+			if(leftEncoder.getRaw() > (0.7 * ticks)) //JT: This is stepping down the speed on approach to target, but it would be much better as a calculated value. Take a ratio of current position versus target?
 			{
 				slowApproach = 0.6;
 			}
