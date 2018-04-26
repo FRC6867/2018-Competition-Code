@@ -169,7 +169,7 @@ public class Robot extends IterativeRobot {
 		// JT: This is an experimental feature. In theory it'll cause the robot to drive forward (straight) a desired distance at a desired speed
 		// JT: It's just bang-bang control. Ideally this would use proportional control and also have smooth accelerations, but this is more of a model for the programming team to figure out later.
 		// JT: This is also only going to work when going forward.
-		double ticks = inches * 46;
+		double ticks =inches* 46; //JT: 46 ticks per inch
 		double slowApproach = 1;
 		halt(); // JT: Just a little safety thing. It's easier to do this from a stopped position.
 		leftEncoder.reset();
