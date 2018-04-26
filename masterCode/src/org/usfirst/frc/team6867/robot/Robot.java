@@ -22,6 +22,14 @@ import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.Compressor; //JT: This is only needed if running an onboard compressor
 import edu.wpi.first.wpilibj.DoubleSolenoid; //JT: And this allows control for the solenoids that are running the actuators
 
+// Libraries for the NavX
+import com.kauailabs.navx.frc.AHRS;
+import com.kauailabs.navx.frc.AHRS.SerialDataType;
+import com.kauailabs.navx.frc.*;
+import edu.wpi.first.wpilibj.SerialPort;
+import edu.wpi.first.wpilibj.SerialPort.*;
+import edu.wpi.first.wpilibj.SPI;
+
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -38,30 +46,14 @@ public class Robot extends IterativeRobot {
 	private SendableChooser<String> m_chooser = new SendableChooser<>();
 	private int stationNumber;
 
+	// Declares the NavX for use
+	AHRS ahrs = new AHRS(SPI.Port.kMXP);
 
 	// Declare the drive motors. These are all now on the Talons. They were on the Victors in old builds
 	WPI_TalonSRX frontLeftDrive = new WPI_TalonSRX(11);
 	WPI_TalonSRX backLeftDrive = new WPI_TalonSRX(10);
 	WPI_TalonSRX frontRightDrive = new WPI_TalonSRX(21);
 	WPI_TalonSRX backRightDrive = new WPI_TalonSRX(20);
-	
-	/*Old config
-	// Declare the drive motors. They're all on Victor motor controllers
-	Victor frontLeftDrive=new Victor (1);	
-	Victor backLeftDrive=new Victor (0);
-	Victor frontRightDrive=new Victor (3);
-	Victor backRightDrive=new Victor (2);
-	Victor lights=new Victor (4); // blinkin LED strip controller
-	*/
-
-
-	/*Old config
-	// Delcare the intake motors. They're on the TalonSRX controllers
-	WPI_TalonSRX frontLeftIntake = new WPI_TalonSRX(10);
-	WPI_TalonSRX frontRightIntake = new WPI_TalonSRX(20);
-	WPI_TalonSRX backRightIntake = new WPI_TalonSRX(21);
-	WPI_TalonSRX backLeftIntake = new WPI_TalonSRX(11);	
-	*/
 	
 	// Delcare the intake motors. These are now on the Victors. They used to be Talons.
 	Victor frontLeftIntake =new Victor (1);	
@@ -104,10 +96,7 @@ public class Robot extends IterativeRobot {
 		m_chooser.addObject("My Auto", kCustomAuto);
 		SmartDashboard.putData("Auto choices", m_chooser);
 		CameraServer.getInstance().startAutomaticCapture();
-		// JT: Again, this is setting up the encoders.
-		// JT: Declare the encoders. This is untested. I'm guessing the ports, which side is which, and what's reversed.
-		// JT: DO NOT EVEN THINK OF USING THE ENCODERS IN COMPETITION WITHOUT VERIFYING THIS FIRST
-		leftEncoder = new Encoder(0,1,false,Encoder.EncodingType.k4X);  // Both sides are seem to be counting correctly right now, but I may have left and right backwards (which would mean the encoders should be reversed)
+		leftEncoder = new Encoder(0,1,false,Encoder.EncodingType.k4X);
 		rightEncoder = new Encoder(2,3,true,Encoder.EncodingType.k4X); 
 		lightingControl(); //enables the lights
 	}
@@ -176,10 +165,11 @@ public class Robot extends IterativeRobot {
 		wait1MSec(50);
 	}
 
-	public void driveForDistance(double ticks, double speed) {
+	public void driveForDistance(double inches, double speed) {
 		// JT: This is an experimental feature. In theory it'll cause the robot to drive forward (straight) a desired distance at a desired speed
 		// JT: It's just bang-bang control. Ideally this would use proportional control and also have smooth accelerations, but this is more of a model for the programming team to figure out later.
 		// JT: This is also only going to work when going forward.
+		double ticks = inches * 46;
 		double slowApproach = 1;
 		halt(); // JT: Just a little safety thing. It's easier to do this from a stopped position.
 		leftEncoder.reset();
@@ -419,8 +409,8 @@ public class Robot extends IterativeRobot {
 		        halt();
 		        autoEnabled = false;
 			}
-			else if(stationNumber == 4) { //JT: Drive for 1000 ticks, whatever that is, at half speed. Then go into a debugging loop so that we can see what the encoders are doing.
-				driveForDistance(5888,0.3); 
+			else if(stationNumber == 4) { //JT: Drive for 128 inches (arbitrary), then stop
+				driveForDistance(128,0.3); 
 				autoEnabled = false;
 			}
 		}
