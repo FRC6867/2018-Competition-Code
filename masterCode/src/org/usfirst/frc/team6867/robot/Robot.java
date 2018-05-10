@@ -99,6 +99,15 @@ public class Robot extends IterativeRobot {
 		leftEncoder = new Encoder(0,1,false,Encoder.EncodingType.k4X);
 		rightEncoder = new Encoder(2,3,true,Encoder.EncodingType.k4X); 
 		lightingControl(); //enables the lights
+		
+		if(ahrs.isConnected()==true)
+		{
+			System.out.println("NavX is connected to RoboRIO.");
+		}
+		else
+		{
+			System.out.println("WARNING: NavX not detected.");		
+		}
 	}
 	
 	public void lightingControl() { //lighting control for the strips
@@ -206,6 +215,58 @@ public class Robot extends IterativeRobot {
 		halt(); // JT: This is going to skid. Again, ideally this would have smooth accelerations, but it's a start.
 	}
 	
+	public void turnToFace(double targetDegrees, double speed) {
+		// JT: This can be used to make the robot turn to face a specific direction.
+		// JT: Use this function to point toward an absolute heading. Use pointTurn() to turn a relative amount.
+		// JT: Right now this always overshoots. The turning needs to be adjusted to slow down as it approaches the target.
+		double startHeading = ahrs.getAngle();
+		System.out.println("***turnToFace() starting from " + Double.toString(ahrs.getAngle()) + " degrees ***");
+		System.out.println("***Aiming for " + Double.toString(targetDegrees) + " degrees ***");		
+		if(startHeading > targetDegrees) {
+			System.out.println("*** Turn CW ***");		
+			while(ahrs.getAngle() > targetDegrees) {
+				leftDrive(speed);
+				rightDrive(-speed);
+			}
+		}
+		else if(startHeading < targetDegrees) {
+			System.out.println("*** Turn CCW ***");
+			while(ahrs.getAngle() < targetDegrees) {
+				leftDrive(-speed);
+				rightDrive(speed);
+			}
+		}
+		halt();
+		System.out.println("*** turnToFace() was trying to hit " + Double.toString(targetDegrees) + ", actually hit " + Double.toString(ahrs.getAngle()) + " ***");	
+	}
+	
+	
+	public void pointTurn(double targetDegrees, double speed) {
+		// JT: Use this function to point turn by a relative amount. Use turnToFace() to turn to an absolute heading.
+		// JT: Right now this always overshoots. The turning needs to be adjusted to slow down as it approaches the target.
+		double startHeading = ahrs.getAngle();
+		double finalHeading = startHeading + targetDegrees;
+		System.out.println("***pointTurn() starting from " + Double.toString(ahrs.getAngle()) + " degrees ***");
+		System.out.println("***Aiming for " + Double.toString(targetDegrees) + " degrees ***");		
+		if(startHeading > finalHeading) {  // JT: I think this is right? Double check if the inequalities are facing the right way.
+			System.out.println("*** Turn CW ***");		
+			while(ahrs.getAngle() > finalHeading) {
+				leftDrive(speed);
+				rightDrive(-speed);
+			}
+		}
+		else if(startHeading < finalHeading) {
+			System.out.println("*** Turn CCW ***");
+			while(ahrs.getAngle() < finalHeading) { // JT: I think this is right? Double check if the inequalities are facing the right way.
+				leftDrive(-speed);
+				rightDrive(speed);
+			}
+		}
+		halt();
+		System.out.println("*** pointTurn() was trying to turn " + Double.toString(targetDegrees) + ", and actually turned " + Double.toString(startHeading - ahrs.getAngle()) + " ***");	
+	}
+	
+	
 	public void wait1MSec(long time){
 		// wait1MSec exists only to mimic a function that's familiar to anyone with Vex/RobotC experience.
 		// This will pause execution of code for a set duration (in milliseconds), allowing for simple drive-for-time behaviours
@@ -273,6 +334,14 @@ public class Robot extends IterativeRobot {
 		}
 		else {
 			SmartDashboard.putString("DB/String 2", "Driver: Ishmam (GTA)");
+		}
+		
+		// And show the value of the gyro...
+		if(ahrs.isConnected()==true) {
+			SmartDashboard.putString("DB/String 3", "NavX (getAngle): " + Double.toString(ahrs.getAngle()));
+		}
+		else {
+			SmartDashboard.putString("DB/String 3", "WARNING: NavX not detected.");	
 		}
 		
 	}	
@@ -439,6 +508,14 @@ public class Robot extends IterativeRobot {
 			SmartDashboard.putString("DB/String 2", "Driver: Ishmam (GTA)");
 		}
 		
+		// And show the value of the gyro...
+		if(ahrs.isConnected()==true) {
+			SmartDashboard.putString("DB/String 3", "NavX (getAngle): " + Double.toString(ahrs.getAngle()));
+		}
+		else {
+			SmartDashboard.putString("DB/String 3", "WARNING: NavX not detected.");	
+		}
+		
 		
 		if (driverSelect == false) { // Clark's tank controls
 			// Clark's tank control
@@ -448,7 +525,7 @@ public class Robot extends IterativeRobot {
 			else {
 				speedMaster = 0.8;
 			}
-				
+
 			// JT: Clark's controls treat the back of the robot as the front, and the front as the back.
 			double leftSpeed = - gamepad.getRawAxis(1);
 			double rightSpeed = - gamepad.getRawAxis(5);
@@ -471,10 +548,16 @@ public class Robot extends IterativeRobot {
 			if (gamepad.getRawButton(1)) { //Just some debugging code so that I can get the encoder values from console
 				System.out.println("leftEncoder: " + Double.toString(leftEncoder.getRaw())); 
 				System.out.println("rightEncoder: " + Double.toString(rightEncoder.getRaw()));
+				System.out.println("AHRS Angle: " + Double.toString(ahrs.getAngle()));
+				System.out.println("AHRS Compass Heading: " + Double.toString(ahrs.getCompassHeading()));
+				System.out.println("AHRS RawGyroX: " + Float.toString(ahrs.getRawGyroX()));
 			}
 			else if (gamepad.getRawButton(2)) {
 				leftEncoder.reset();
 				rightEncoder.reset();
+			}
+			else if (gamepad.getRawButton(3)) {
+				turnToFace(90,0.5);
 			}
 		}
 		
