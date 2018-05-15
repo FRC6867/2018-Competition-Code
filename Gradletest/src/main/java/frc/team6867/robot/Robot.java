@@ -24,7 +24,7 @@ import com.kauailabs.navx.frc.*;
 import edu.wpi.first.wpilibj.SerialPort;
 import edu.wpi.first.wpilibj.SerialPort.*;
 import edu.wpi.first.wpilibj.SPI;
-//boop
+
 
 /**
  * The VM is configured to automatically run this class, and to call the
